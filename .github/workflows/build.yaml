@@ -1,0 +1,53 @@
+name: Build and Test
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: ['**']
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        gradle-version: ['7.6.4', '8.11', '9.1']
+        os: [ubuntu-latest]
+
+    runs-on: ${{ matrix.os }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 11
+        uses: actions/setup-java@v4
+        with:
+          java-version: '11'
+          distribution: 'temurin'
+
+      - name: Setup Gradle
+        uses: gradle/actions/setup-gradle@v3
+        with:
+          gradle-version: ${{ matrix.gradle-version }}
+          cache-read-only: ${{ github.ref != 'refs/heads/main' && github.ref != 'refs/heads/master' }}
+
+      - name: Build with Gradle
+        run: ./gradlew build --scan --no-daemon
+        env:
+          GRADLE_BUILD_ACTION_CACHE_KEY_PREFIX: ${{ matrix.gradle-version }}
+
+      - name: Run tests
+        run: ./gradlew test --scan --no-daemon
+
+      - name: Upload test reports
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-gradle-${{ matrix.gradle-version }}
+          path: build/reports/tests/
+          retention-days: 7
+
+      - name: Upload build scan URL
+        if: always()
+        run: |
+          echo "Build scan published at the URL shown in the build output"
