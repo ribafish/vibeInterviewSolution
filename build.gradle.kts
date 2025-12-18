@@ -26,7 +26,11 @@ gradlePlugin {
 }
 
 dependencies {
+    implementation(gradleApi())
+
     testImplementation(kotlin("test"))
+    testImplementation(gradleTestKit())
+    testImplementation("org.junit.jupiter:junit-jupiter-params")
 }
 
 tasks.test {

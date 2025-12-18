@@ -1,6 +1,14 @@
-# vibeInterviewSolution
+# Project Report Gradle Plugin
 
-Vibe the interview solution using claude, codex  and gemini. Use their branches to see the solution.
+Kotlin-first Gradle plugin that generates a Markdown report with project metadata and resolved dependencies.
 
-Plan for the Gradle project report plugin: see `PLAN.md`.
+## Usage
+- Apply the plugin id `com.vibe.projectreport`.
+- Optional extension settings:
+  - `renderDependencies` (default `true`) to toggle dependency rendering.
+  - `outputFile` (default `build/reports/project-report.md`) to change where the report is written.
 
+## Development
+- Build and test: `./gradlew build`
+- Gradle build scans are published to `scans.gradle.com` by default; set `DISABLE_BUILD_SCAN=true` to opt out.
+- Functional tests use Gradle TestKit across multiple Gradle versions; locally cached distributions are required for the matrix entries.
