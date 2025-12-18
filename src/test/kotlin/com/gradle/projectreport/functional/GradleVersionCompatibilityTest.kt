@@ -14,7 +14,7 @@ class GradleVersionCompatibilityTest {
     lateinit var projectDir: File
 
     @ParameterizedTest
-    @ValueSource(strings = ["7.6.4", "8.11", "8.12"])
+    @ValueSource(strings = ["7.6.4", "8.14.3", "9.2.1"])
     fun `plugin works with Gradle version`(gradleVersion: String) {
         setupProject(
             """
@@ -59,7 +59,7 @@ class GradleVersionCompatibilityTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["7.6.4", "8.11", "8.12"])
+    @ValueSource(strings = ["7.6.4", "8.14.3", "9.2.1"])
     fun `task caching works with Gradle version`(gradleVersion: String) {
         setupProject(
             """
@@ -95,7 +95,7 @@ class GradleVersionCompatibilityTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["7.6.4", "8.11", "8.12"])
+    @ValueSource(strings = ["7.6.4", "8.14.3", "9.2.1"])
     fun `extension configuration works with Gradle version`(gradleVersion: String) {
         setupProject(
             """
@@ -138,7 +138,7 @@ class GradleVersionCompatibilityTest {
     }
 
     @ParameterizedTest
-    @ValueSource(strings = ["7.6.4", "8.11", "8.12"])
+    @ValueSource(strings = ["7.6.4", "8.14.3", "9.2.1"])
     fun `configuration cache works with Gradle version`(gradleVersion: String) {
         // Configuration cache requires Gradle 8.0+, so we skip for 7.x
         if (gradleVersion.startsWith("7.")) {
