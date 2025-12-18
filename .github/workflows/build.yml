@@ -1,4 +1,4 @@
-name: build - codex
+name: Build - codex
 
 on:
   push:
