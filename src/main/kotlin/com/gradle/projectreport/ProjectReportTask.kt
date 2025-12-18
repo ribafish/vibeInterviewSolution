@@ -44,10 +44,10 @@ abstract class ProjectReportTask : DefaultTask() {
             appendLine("## Project Information")
             appendLine()
             appendLine("- **Name**: ${projectName.get()}")
-            if (projectGroup.isPresent) {
+            if (projectGroup.isPresent && projectGroup.get().isNotBlank()) {
                 appendLine("- **Group**: ${projectGroup.get()}")
             }
-            if (projectDescription.isPresent) {
+            if (projectDescription.isPresent && projectDescription.get().isNotBlank()) {
                 appendLine("- **Description**: ${projectDescription.get()}")
             }
             appendLine()

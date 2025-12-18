@@ -59,6 +59,7 @@ class ProjectReportPlugin : Plugin<Project> {
 
     private fun resolveDependencies(configuration: Configuration): List<String> {
         val result = mutableSetOf<String>()
+        val visited = mutableSetOf<String>()
 
         try {
             val resolutionResult = configuration.incoming.resolutionResult
@@ -66,7 +67,7 @@ class ProjectReportPlugin : Plugin<Project> {
 
             root.dependencies.forEach { dependency ->
                 if (dependency is org.gradle.api.artifacts.result.ResolvedDependencyResult) {
-                    collectComponentDependencies(dependency.selected, result, configuration)
+                    collectComponentDependencies(dependency.selected, result, visited, configuration)
                 }
             }
         } catch (e: Exception) {
@@ -79,25 +80,35 @@ class ProjectReportPlugin : Plugin<Project> {
     private fun collectComponentDependencies(
         component: org.gradle.api.artifacts.result.ResolvedComponentResult,
         result: MutableSet<String>,
+        visited: MutableSet<String>,
         configuration: Configuration
     ) {
         val moduleVersion = component.moduleVersion
-        if (moduleVersion != null) {
-            // Find the corresponding artifact
-            val artifacts = configuration.incoming.artifacts.artifacts
-            val matchingArtifact = artifacts.find { artifact ->
-                val id = artifact.id.componentIdentifier
-                id.toString().contains("${moduleVersion.group}:${moduleVersion.name}:${moduleVersion.version}")
-            }
-
-            val artifactName = matchingArtifact?.file?.name ?: "${moduleVersion.name}-${moduleVersion.version}.jar"
-            val dependency = "${moduleVersion.group}:${moduleVersion.name}:${moduleVersion.version} - $artifactName"
-            result.add(dependency)
+        if (moduleVersion == null) {
+            return
         }
 
-        component.dependencies.forEach { dependency ->
-            if (dependency is org.gradle.api.artifacts.result.ResolvedDependencyResult) {
-                collectComponentDependencies(dependency.selected, result, configuration)
+        val componentId = "${moduleVersion.group}:${moduleVersion.name}:${moduleVersion.version}"
+
+        // Skip if already visited to prevent infinite recursion
+        if (!visited.add(componentId)) {
+            return
+        }
+
+        // Find the corresponding artifact
+        val artifacts = configuration.incoming.artifacts.artifacts
+        val matchingArtifact = artifacts.find { artifact ->
+            val id = artifact.id.componentIdentifier
+            id.toString().contains(componentId)
+        }
+
+        val artifactName = matchingArtifact?.file?.name ?: "${moduleVersion.name}-${moduleVersion.version}.jar"
+        val dependency = "$componentId - $artifactName"
+        result.add(dependency)
+
+        component.dependencies.forEach { dep ->
+            if (dep is org.gradle.api.artifacts.result.ResolvedDependencyResult) {
+                collectComponentDependencies(dep.selected, result, visited, configuration)
             }
         }
     }
