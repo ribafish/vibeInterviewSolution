@@ -1,0 +1,19 @@
+# Gradle files
+build/
+.gradle/
+.idea/
+*.iml
+*~
+*.swp
+
+# macOS
+.DS_Store
+
+# Logs
+logs
+*.log
+
+# Project specific
+/project.zip
+/Develocity DevProd code project.pdf
+/custom-reports/
