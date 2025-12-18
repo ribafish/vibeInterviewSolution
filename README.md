@@ -17,4 +17,4 @@ Kotlin-first Gradle plugin that generates a Markdown report with project metadat
 ## Development
 - Build and test: `./gradlew build`
 - Gradle build scans are published to `scans.gradle.com` by default; set `DISABLE_BUILD_SCAN=true` to opt out.
-- Functional tests use Gradle TestKit across multiple Gradle versions (currently 8.14.3 and 9.4.0); locally cached distributions are required for the matrix entries.
+- Functional tests use Gradle TestKit across multiple Gradle versions (currently 8.14.3 and 9.2.1); locally cached distributions are required for the matrix entries.

@@ -346,6 +346,6 @@ class ProjectReportPluginFunctionalTest {
     companion object {
         @JvmStatic
         fun gradleVersions(): List<String> =
-            listOf("8.14.3", "9.4.0", GradleVersion.current().version).distinct()
+            listOf("8.14.3", "9.2.1", GradleVersion.current().version).distinct()
     }
 }

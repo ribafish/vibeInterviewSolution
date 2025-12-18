@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        gradle-version: [8.14.3, 9.4.0, wrapper]
+        gradle-version: [8.14.3, 9.2.1, wrapper]
 
     steps:
       - name: Checkout
