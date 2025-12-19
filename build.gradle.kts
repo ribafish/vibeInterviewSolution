@@ -1,5 +1,7 @@
+import org.gradle.api.tasks.bundling.Zip
+
 plugins {
-    kotlin("jvm") version "2.2.20"
+    kotlin("jvm") version "1.8.22"
     `java-gradle-plugin`
 }
 
@@ -35,4 +37,22 @@ dependencies {
 
 tasks.test {
     useJUnitPlatform()
+}
+
+tasks.register<Zip>("packageProject") {
+    archiveFileName.set("project.zip")
+    destinationDirectory.set(layout.projectDirectory)
+    from(layout.projectDirectory) {
+        include("**/*")
+        exclude(
+            "build/**",
+            ".gradle/**",
+            "**/.gradle/**",
+            "**/.idea/**",
+            ".git/**",
+            "**/.DS_Store",
+            ".venv-codex/**",
+            "project.zip"
+        )
+    }
 }

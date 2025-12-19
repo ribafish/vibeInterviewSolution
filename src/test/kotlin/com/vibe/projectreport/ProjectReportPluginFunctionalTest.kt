@@ -3,7 +3,6 @@ package com.vibe.projectreport
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.util.GradleVersion
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.Assumptions.assumeTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
 import org.junit.jupiter.params.ParameterizedTest
@@ -24,8 +23,6 @@ class ProjectReportPluginFunctionalTest {
     @ParameterizedTest
     @MethodSource("gradleVersions")
     fun `generates metadata only report`(gradleVersion: String) {
-        assumeTrue(isGradleAvailable(gradleVersion), "Gradle $gradleVersion not available locally")
-
         val result = runBuild(
             gradleVersion = gradleVersion,
             projectName = "metadata-only",
@@ -38,19 +35,17 @@ class ProjectReportPluginFunctionalTest {
             """.trimIndent(),
         )
 
-        assertTrue(result.report.contains("# metadata-only Project Report"))
+        assertTrue(result.report.contains("# metadata-only"))
         assertTrue(result.report.contains("- Group: com.example"))
         assertTrue(result.report.contains("- Description: Metadata only project"))
-        assertTrue(result.report.contains("_No resolvable dependencies._"))
+        assertTrue(!result.report.contains("## Dependencies"))
     }
 
     @ParameterizedTest
     @MethodSource("gradleVersions")
     fun `renders external dependency from local repo`(gradleVersion: String) {
-        assumeTrue(isGradleAvailable(gradleVersion), "Gradle $gradleVersion not available locally")
-
         val repoDir = tempDir.resolve("repo-${gradleVersion.replace('.', '-') }").createDirectories()
-        publishModule(repoDir, "com.example", "demo", "1.0.0")
+        publishModule(repoDir, "org.apache.commons", "commons-lang3", "3.12.0")
 
         val result = runBuild(
             gradleVersion = gradleVersion,
@@ -69,28 +64,26 @@ class ProjectReportPluginFunctionalTest {
                     }
                 }
                 dependencies {
-                    add("resolvable", "com.example:demo:1.0.0")
+                    add("resolvable", "org.apache.commons:commons-lang3:3.12.0")
                 }
             """.trimIndent(),
         )
 
-        assertTrue(result.report.contains("- resolvable"))
-        assertTrue(result.report.contains("com.example:demo:1.0.0 - demo-1.0.0.jar"))
+        assertTrue(result.report.contains("## Dependencies"))
+        assertTrue(result.report.contains("- org.apache.commons:commons-lang3:3.12.0 - commons-lang3-3.12.0.jar"))
     }
 
     @ParameterizedTest
     @MethodSource("gradleVersions")
     fun `renders transitives in order`(gradleVersion: String) {
-        assumeTrue(isGradleAvailable(gradleVersion), "Gradle $gradleVersion not available locally")
-
         val repoDir = tempDir.resolve("repo-transitive-${gradleVersion.replace('.', '-') }").createDirectories()
-        publishModule(repoDir, "com.example", "leaf", "1.0.0")
+        publishModule(repoDir, "org.apache.commons", "commons-lang3", "3.12.0")
         publishModule(
             repoDir,
-            group = "com.example",
-            name = "root",
-            version = "1.0.0",
-            dependencies = listOf(ModuleCoordinate("com.example", "leaf", "1.0.0")),
+            group = "org.apache.commons",
+            name = "commons-text",
+            version = "1.10.0",
+            dependencies = listOf(ModuleCoordinate("org.apache.commons", "commons-lang3", "3.12.0")),
         )
 
         val result = runBuild(
@@ -110,13 +103,13 @@ class ProjectReportPluginFunctionalTest {
                     }
                 }
                 dependencies {
-                    add("runtimeCopy", "com.example:root:1.0.0")
+                    add("runtimeCopy", "org.apache.commons:commons-text:1.10.0")
                 }
             """.trimIndent(),
         )
 
-        val rootIndex = result.report.indexOf("com.example:root:1.0.0 - root-1.0.0.jar")
-        val leafIndex = result.report.indexOf("com.example:leaf:1.0.0 - leaf-1.0.0.jar")
+        val rootIndex = result.report.indexOf("org.apache.commons:commons-text:1.10.0 - commons-text-1.10.0.jar")
+        val leafIndex = result.report.indexOf("org.apache.commons:commons-lang3:3.12.0 - commons-lang3-3.12.0.jar")
         assertTrue(rootIndex > 0 && leafIndex > 0)
         assertTrue(leafIndex < rootIndex, "Transitive dependency should appear before root due to sorting")
     }
@@ -124,8 +117,6 @@ class ProjectReportPluginFunctionalTest {
     @ParameterizedTest
     @MethodSource("gradleVersions")
     fun `renders project dependency`(gradleVersion: String) {
-        assumeTrue(isGradleAvailable(gradleVersion), "Gradle $gradleVersion not available locally")
-
         val projectDir = tempDir.resolve("project-dep-$gradleVersion").createDirectories()
         projectDir.resolve("settings.gradle.kts").writeText(
             """
@@ -166,15 +157,12 @@ class ProjectReportPluginFunctionalTest {
             projectDirOverride = projectDir,
         )
 
-        assertTrue(result.report.contains("- projectDeps"))
-        assertTrue(result.report.contains(":lib - lib.jar"))
+        assertTrue(result.report.contains("- :lib - lib.jar"))
     }
 
     @ParameterizedTest
     @MethodSource("gradleVersions")
     fun `respects renderDependencies flag`(gradleVersion: String) {
-        assumeTrue(isGradleAvailable(gradleVersion), "Gradle $gradleVersion not available locally")
-
         val result = runBuild(
             gradleVersion = gradleVersion,
             projectName = "skip-deps",
@@ -188,13 +176,12 @@ class ProjectReportPluginFunctionalTest {
             """.trimIndent(),
         )
 
-        assertTrue(!result.report.contains("Dependencies"))
+        assertTrue(!result.report.contains("## Dependencies"))
     }
 
     @Test
     fun `writes custom output file`() {
         val gradleVersion = GradleVersion.current().version
-        assumeTrue(isGradleAvailable(gradleVersion), "Gradle $gradleVersion not available locally")
 
         val result = runBuild(
             gradleVersion = gradleVersion,
@@ -211,13 +198,12 @@ class ProjectReportPluginFunctionalTest {
         )
 
         assertTrue(result.reportPath.endsWith("reports/custom/report.md"))
-        assertTrue(result.report.contains("# custom-output Project Report"))
+        assertTrue(result.report.contains("# custom-output"))
     }
 
     @Test
     fun `supports configuration cache`() {
         val gradleVersion = GradleVersion.current().version
-        assumeTrue(isGradleAvailable(gradleVersion), "Gradle $gradleVersion not available locally")
 
         val projectDir = tempDir.resolve("config-cache").createDirectories()
         projectDir.resolve("settings.gradle.kts").writeText("""rootProject.name = "config-cache"""")
@@ -282,14 +268,6 @@ class ProjectReportPluginFunctionalTest {
         )
     }
 
-    private fun isGradleAvailable(version: String): Boolean {
-        val userHome = System.getenv("GRADLE_USER_HOME")
-            ?.let { Path.of(it) }
-            ?: Path.of(System.getProperty("user.home")).resolve(".gradle")
-        val distDir = userHome.resolve("wrapper").resolve("dists").resolve("gradle-$version-bin")
-        return Files.exists(distDir) && Files.list(distDir).use { it.findAny().isPresent }
-    }
-
     private fun publishModule(
         repoDir: Path,
         group: String,
@@ -346,6 +324,6 @@ class ProjectReportPluginFunctionalTest {
     companion object {
         @JvmStatic
         fun gradleVersions(): List<String> =
-            listOf("8.14.3", "9.2.1", GradleVersion.current().version).distinct()
+            listOf("7.6.4", "8.14.3", "9.2.1").distinct()
     }
 }

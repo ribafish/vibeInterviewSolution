@@ -10,7 +10,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        gradle-version: [8.14.3, 9.2.1, wrapper]
+        gradle-version: [7.6.4, 8.14.3, 9.2.1]
 
     steps:
       - name: Checkout
@@ -23,22 +23,13 @@ jobs:
           java-version: 17
 
       - name: Setup Gradle ${{ matrix.gradle-version }}
-        if: matrix.gradle-version != 'wrapper'
         uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: ${{ matrix.gradle-version }}
 
-      - name: Setup Gradle (wrapper)
-        if: matrix.gradle-version == 'wrapper'
-        uses: gradle/actions/setup-gradle@v4
-
       - name: Run checks
         run: |
-          if [ "${{ matrix.gradle-version }}" = "wrapper" ]; then
-            ./gradlew check --stacktrace --warning-mode=fail
-          else
-            gradle check --stacktrace --warning-mode=fail
-          fi
+          gradle check --stacktrace --warning-mode=fail
 
       - name: Upload test reports
         if: failure()

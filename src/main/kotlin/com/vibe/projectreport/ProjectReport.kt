@@ -53,11 +53,10 @@ abstract class ProjectReport : DefaultTask() {
 }
 
 internal fun collectDependencies(project: Project): List<String> {
-    val entries = mutableListOf<Pair<String, String>>()
+    val entries = mutableListOf<String>()
 
     project.configurations
         .filter { it.isCanBeResolved }
-        .sortedBy { it.name }
         .forEach { configuration ->
             val artifacts = configuration.incoming.artifactView { view ->
                 view.isLenient = true
@@ -66,14 +65,12 @@ internal fun collectDependencies(project: Project): List<String> {
             artifacts.forEach { artifact ->
                 val coordinate = coordinateFor(artifact.id.componentIdentifier)
                 val artifactName = artifact.file.name
-                val line = "$coordinate - $artifactName"
-                entries.add(configuration.name to line)
+                entries.add("$coordinate - $artifactName")
             }
         }
 
     return entries
-        .sortedWith(compareBy<Pair<String, String>>({ it.first }, { it.second }))
-        .map { (configuration, line) -> "$configuration: $line" }
+        .sorted()
 }
 
 private fun coordinateFor(identifier: ComponentIdentifier): String = when (identifier) {
@@ -90,20 +87,16 @@ internal fun buildReport(
     dependencyLines: List<String>
 ): String {
     val builder = StringBuilder()
-    builder.append("# ").append(name).append(" Project Report\n\n")
+    builder.append("# ").append(name).append("\n\n")
     builder.append("## Metadata\n")
     builder.append("- Name: ").append(name).append("\n")
     builder.append("- Group: ").append(group).append("\n")
     builder.append("- Description: ").append(description?.takeIf { it.isNotBlank() } ?: "None").append("\n")
 
-    if (renderDependencies) {
+    if (renderDependencies && dependencyLines.isNotEmpty()) {
         builder.append("\n## Dependencies\n")
-        if (dependencyLines.isEmpty()) {
-            builder.append("_No resolvable dependencies._\n")
-        } else {
-            dependencyLines.forEach { line ->
-                builder.append("- ").append(line).append("\n")
-            }
+        dependencyLines.forEach { line ->
+            builder.append("- ").append(line).append("\n")
         }
     }
 
