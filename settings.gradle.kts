@@ -12,9 +12,9 @@ plugins {
 develocity {
     server.set("https://scans.gradle.com")
     buildScan {
-        termsOfUseUrl = "https://gradle.com/terms-of-service"
-        termsOfUseAgree = "yes"
-        isUploadInBackground = false
+        termsOfUseUrl.set("https://gradle.com/terms-of-service")
+        termsOfUseAgree.set("yes")
+        uploadInBackground.set(false)
     }
 }
 
