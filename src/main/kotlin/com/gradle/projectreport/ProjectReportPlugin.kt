@@ -7,93 +7,56 @@ import org.gradle.api.artifacts.Configuration
 class ProjectReportPlugin : Plugin<Project> {
     override fun apply(project: Project) {
         val extension = project.extensions.create("projectReport", ProjectReportExtension::class.java)
+        extension.output.convention(project.layout.buildDirectory.file("reports/project-report.md"))
 
-        // Set default output location
-        extension.output.convention(
-            project.layout.buildDirectory.file("reports/project-report.md")
-        )
-
-        project.tasks.register("projectReport", ProjectReportTask::class.java).configure {
+        project.tasks.register("projectReport", ProjectReportTask::class.java) {
             group = "documentation"
             description = "Generates a Markdown report with project metadata and dependencies"
 
-            // Wire basic project properties
-            projectName.set(project.name)
-            projectGroup.set(project.provider { project.group.toString() })
-            projectDescription.set(project.provider {
-                project.description ?: ""
-            })
+            val targetProjects = if (project.subprojects.isEmpty()) listOf(project) else project.subprojects.toList()
 
-            // Wire extension properties
+            rootProjectName.set(project.name)
+            multiProject.set(targetProjects.size > 1)
             renderDependencies.set(extension.renderDependencies)
             outputFile.set(extension.output)
 
-            // Check if this is a multi-project build
-            val subprojectsList = project.subprojects.toList()
-
-            if (subprojectsList.isNotEmpty()) {
-                // Multi-project: collect data from all subprojects
-                subprojects.set(project.provider {
-                    subprojectsList.map { subproject ->
-                        ProjectData(
-                            name = subproject.name,
-                            group = subproject.group.toString(),
-                            description = subproject.description ?: "",
-                            configurations = if (extension.renderDependencies.get()) {
-                                collectDependencies(subproject)
-                            } else {
-                                emptyList()
-                            }
-                        )
-                    }
-                })
-                // Empty configurations for root project when rendering subprojects
-                configurations.set(emptyList())
-            } else {
-                // Single project: collect dependencies for this project only
-                configurations.set(project.provider {
-                    if (extension.renderDependencies.get()) {
-                        collectDependencies(project)
-                    } else {
-                        emptyList()
-                    }
-                })
-                subprojects.set(emptyList())
-            }
+            projects.set(project.provider {
+                targetProjects.map { proj ->
+                    ProjectData(
+                        name = proj.name,
+                        group = proj.group.toString(),
+                        description = proj.description ?: "",
+                        configurations = if (extension.renderDependencies.get()) {
+                            collectDependencies(proj)
+                        } else {
+                            emptyList()
+                        }
+                    )
+                }
+            })
         }
     }
 
-    private fun collectDependencies(project: Project): List<ConfigurationData> {
-        return project.configurations
+    private fun collectDependencies(project: Project): List<ConfigurationData> =
+        project.configurations
             .filter { it.isCanBeResolved }
-            .mapNotNull { configuration ->
+            .mapNotNull { config ->
                 try {
-                    val dependencies = resolveDependencies(configuration)
-                    if (dependencies.isNotEmpty()) {
-                        ConfigurationData(configuration.name, dependencies)
-                    } else {
-                        null
-                    }
+                    resolveDependencies(config).takeIf { it.isNotEmpty() }
+                        ?.let { ConfigurationData(config.name, it) }
                 } catch (e: Exception) {
-                    // Skip configurations that fail to resolve
                     null
                 }
             }
-    }
 
     private fun resolveDependencies(configuration: Configuration): List<String> {
         val result = mutableSetOf<String>()
         val visited = mutableSetOf<String>()
 
         try {
-            val resolutionResult = configuration.incoming.resolutionResult
-            val root = resolutionResult.root
-
-            root.dependencies.forEach { dependency ->
-                if (dependency is org.gradle.api.artifacts.result.ResolvedDependencyResult) {
-                    collectComponentDependencies(dependency.selected, result, visited, configuration)
-                }
-            }
+            configuration.incoming.resolutionResult.root.dependencies
+                .filterIsInstance<org.gradle.api.artifacts.result.ResolvedDependencyResult>()
+                .forEach { collectComponentDependencies(it.selected, result, visited, configuration) }
         } catch (e: Exception) {
             // Skip if resolution fails
         }
@@ -107,33 +70,20 @@ class ProjectReportPlugin : Plugin<Project> {
         visited: MutableSet<String>,
         configuration: Configuration
     ) {
-        val moduleVersion = component.moduleVersion
-        if (moduleVersion == null) {
-            return
-        }
-
+        val moduleVersion = component.moduleVersion ?: return
         val componentId = "${moduleVersion.group}:${moduleVersion.name}:${moduleVersion.version}"
 
-        // Skip if already visited to prevent infinite recursion
-        if (!visited.add(componentId)) {
-            return
-        }
+        if (!visited.add(componentId)) return
 
-        // Find the corresponding artifact
-        val artifacts = configuration.incoming.artifacts.artifacts
-        val matchingArtifact = artifacts.find { artifact ->
-            val id = artifact.id.componentIdentifier
-            id.toString().contains(componentId)
-        }
+        val artifactName = configuration.incoming.artifacts.artifacts
+            .find { it.id.componentIdentifier.toString().contains(componentId) }
+            ?.file?.name
+            ?: "${moduleVersion.name}-${moduleVersion.version}.jar"
 
-        val artifactName = matchingArtifact?.file?.name ?: "${moduleVersion.name}-${moduleVersion.version}.jar"
-        val dependency = "$componentId - $artifactName"
-        result.add(dependency)
+        result.add("$componentId - $artifactName")
 
-        component.dependencies.forEach { dep ->
-            if (dep is org.gradle.api.artifacts.result.ResolvedDependencyResult) {
-                collectComponentDependencies(dep.selected, result, visited, configuration)
-            }
-        }
+        component.dependencies
+            .filterIsInstance<org.gradle.api.artifacts.result.ResolvedDependencyResult>()
+            .forEach { collectComponentDependencies(it.selected, result, visited, configuration) }
     }
 }

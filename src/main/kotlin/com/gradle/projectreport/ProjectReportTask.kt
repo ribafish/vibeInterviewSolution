@@ -1,106 +1,98 @@
 package com.gradle.projectreport
 
 import org.gradle.api.DefaultTask
-import org.gradle.api.artifacts.Configuration
-import org.gradle.api.artifacts.result.ResolvedComponentResult
-import org.gradle.api.artifacts.result.ResolvedDependencyResult
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.provider.ListProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.tasks.*
-import java.io.File
 
 @CacheableTask
 abstract class ProjectReportTask : DefaultTask() {
 
     @get:Input
-    abstract val projectName: Property<String>
+    abstract val rootProjectName: Property<String>
 
     @get:Input
-    @get:Optional
-    abstract val projectGroup: Property<String>
-
-    @get:Input
-    @get:Optional
-    abstract val projectDescription: Property<String>
+    abstract val multiProject: Property<Boolean>
 
     @get:Input
     abstract val renderDependencies: Property<Boolean>
 
     @get:Nested
-    abstract val configurations: ListProperty<ConfigurationData>
-
-    @get:Nested
-    abstract val subprojects: ListProperty<ProjectData>
+    abstract val projects: ListProperty<ProjectData>
 
     @get:OutputFile
     abstract val outputFile: RegularFileProperty
 
     @TaskAction
     fun generate() {
-        val output = outputFile.asFile.get()
-        output.parentFile.mkdirs()
-
-        val subprojectsList = subprojects.get()
-        val hasSubprojects = subprojectsList.isNotEmpty()
-
-        val content = buildString {
-            if (hasSubprojects) {
-                // Multi-project report
-                appendLine("# ${projectName.get()}")
-                appendLine()
-                appendLine("Multi-project build report for **${projectName.get()}** containing ${subprojectsList.size} subproject(s).")
-                appendLine()
-
-                subprojectsList.forEach { projectData ->
-                    renderProject(projectData)
-                    appendLine("---")
-                    appendLine()
-                }
-            } else {
-                // Single project report
-                val projectData = ProjectData(
-                    name = projectName.get(),
-                    group = if (projectGroup.isPresent) projectGroup.get() else "",
-                    description = if (projectDescription.isPresent) projectDescription.get() else "",
-                    configurations = configurations.get()
-                )
-                renderProject(projectData)
-            }
+        outputFile.asFile.get().apply {
+            parentFile.mkdirs()
+            writeText(buildReport())
         }
-
-        output.writeText(content)
     }
 
-    private fun StringBuilder.renderProject(projectData: ProjectData) {
-        appendLine("## ${projectData.name}")
-        appendLine()
-        appendLine("### Project Information")
-        appendLine()
-        appendLine("- **Name**: ${projectData.name}")
-        if (projectData.group.isNotBlank()) {
-            appendLine("- **Group**: ${projectData.group}")
+    private fun buildReport() = buildString {
+        if (multiProject.get()) {
+            appendMultiProjectHeader()
         }
-        if (projectData.description.isNotBlank()) {
-            appendLine("- **Description**: ${projectData.description}")
-        }
-        appendLine()
-
-        if (renderDependencies.get() && projectData.configurations.isNotEmpty()) {
-            appendLine("### Dependencies")
-            appendLine()
-
-            projectData.configurations.forEach { configData ->
-                if (configData.dependencies.isNotEmpty()) {
-                    appendLine("#### ${configData.name}")
-                    appendLine()
-                    configData.dependencies.sorted().forEach { dep ->
-                        appendLine("- $dep")
-                    }
-                    appendLine()
-                }
+        projects.get().forEachIndexed { index, project ->
+            appendProject(project)
+            if (multiProject.get() && index < projects.get().size - 1) {
+                appendLine("---")
+                appendLine()
             }
         }
+    }
+
+    private fun StringBuilder.appendMultiProjectHeader() {
+        val count = projects.get().size
+        appendLine("# ${rootProjectName.get()}")
+        appendLine()
+        appendLine("Multi-project build report for **${rootProjectName.get()}** containing $count subproject(s).")
+        appendLine()
+    }
+
+    private fun StringBuilder.appendProject(project: ProjectData) {
+        val isMulti = multiProject.get()
+        appendLine("${if (isMulti) "##" else "#"} ${project.name}")
+        appendLine()
+        appendProjectInfo(project, isMulti)
+        if (renderDependencies.get() && project.configurations.isNotEmpty()) {
+            appendDependencies(project, isMulti)
+        }
+    }
+
+    private fun StringBuilder.appendProjectInfo(project: ProjectData, isMulti: Boolean) {
+        appendLine("${if (isMulti) "###" else "##"} Project Information")
+        appendLine()
+        appendLine("- **Name**: ${project.name}")
+        if (project.group.isNotBlank()) {
+            appendLine("- **Group**: ${project.group}")
+        }
+        if (project.description.isNotBlank()) {
+            appendLine("- **Description**: ${project.description}")
+        }
+        appendLine()
+    }
+
+    private fun StringBuilder.appendDependencies(project: ProjectData, isMulti: Boolean) {
+        val headerPrefix = if (isMulti) "###" else "##"
+        val configPrefix = if (isMulti) "####" else "###"
+
+        appendLine("$headerPrefix Dependencies")
+        appendLine()
+
+        project.configurations
+            .filter { it.dependencies.isNotEmpty() }
+            .forEach { config ->
+                appendLine("$configPrefix ${config.name}")
+                appendLine()
+                config.dependencies.sorted().forEach { dep ->
+                    appendLine("- $dep")
+                }
+                appendLine()
+            }
     }
 }
 
