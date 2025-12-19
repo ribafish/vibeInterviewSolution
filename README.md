@@ -22,7 +22,7 @@ Kotlin-first Gradle plugin that generates a Markdown report with project metadat
 ## Example multi-project usage
 - Location: `examples/multi-project` (modules: `app`, `library`, `utils`), plugin applied at the root `build.gradle.kts` to generate a single merged report.
 - How it works: the root applies the Java plugin and declares normal `implementation` dependencies on each subproject; their external dependencies flow into the resolved graph automatically.
-- Run: `./gradlew -p examples/multi-project projectReport` (uses composite build via `includeBuild("..")` to source the plugin).
+- Run: `./gradlew -p examples/multi-project projectReport` (composite build via `includeBuild("..")` to source the plugin). Build scans are auto-published to `scans.gradle.com` via the example’s `settings.gradle.kts`.
 - Inspect report: `examples/multi-project/build/reports/project-report.md` contains project metadata and a combined dependency list (e.g., `:app`, `:library`, `:utils`, `commons-text`, `commons-lang3`).
 - Tweak the example: modify subproject dependencies or descriptions, rerun the command, and re-open the merged report.
 
