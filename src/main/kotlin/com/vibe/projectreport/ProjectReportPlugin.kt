@@ -18,12 +18,12 @@ class ProjectReportPlugin : Plugin<Project> {
             task.renderDependencies.set(extension.renderDependencies)
             task.outputFile.set(extension.outputFile)
 
-            task.dependenciesListing.set(
+            task.dependenciesByConfiguration.set(
                 extension.renderDependencies.flatMap { render ->
                     if (render) {
                         project.provider { collectDependencies(project) }
                     } else {
-                        project.provider { emptyList() }
+                        project.provider { emptyMap() }
                     }
                 }
             )

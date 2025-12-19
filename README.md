@@ -11,7 +11,7 @@ Kotlin-first Gradle plugin that generates a Markdown report with project metadat
 ## Report format
 - Title: `# <projectName>`
 - Metadata: name, group, description (falls back to `None`).
-- Dependencies: when enabled and resolvable entries exist, each line is `<group>:<artifact>:<version> - <artifactFileOrDirName>`.
+- Dependencies: when enabled, dependencies are grouped per resolvable configuration (`### <configurationName>`) and list each resolved artifact as `<group>:<artifact>:<version> - <artifactFileOrDirName>`.
 
 ## Build, test, package
 - Build and test: `./gradlew check`

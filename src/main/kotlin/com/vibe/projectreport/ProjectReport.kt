@@ -5,7 +5,7 @@ import org.gradle.api.Project
 import org.gradle.api.artifacts.component.ComponentIdentifier
 import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.gradle.api.artifacts.component.ProjectComponentIdentifier
-import org.gradle.api.provider.ListProperty
+import org.gradle.api.provider.MapProperty
 import org.gradle.api.provider.Property
 import org.gradle.api.file.RegularFileProperty
 import org.gradle.api.tasks.CacheableTask
@@ -30,14 +30,14 @@ abstract class ProjectReport : DefaultTask() {
     abstract val renderDependencies: Property<Boolean>
 
     @get:Input
-    abstract val dependenciesListing: ListProperty<String>
+    abstract val dependenciesByConfiguration: MapProperty<String, List<String>>
 
     @get:OutputFile
     abstract val outputFile: RegularFileProperty
 
     @TaskAction
     fun generate() {
-        val dependencyLines = if (renderDependencies.get()) dependenciesListing.get() else emptyList()
+        val dependencyLines = if (renderDependencies.get()) dependenciesByConfiguration.get() else emptyMap()
         val reportContent = buildReport(
             projectName.get(),
             projectGroup.get(),
@@ -52,12 +52,11 @@ abstract class ProjectReport : DefaultTask() {
     }
 }
 
-internal fun collectDependencies(project: Project): List<String> {
-    val entries = mutableListOf<String>()
-
-    project.configurations
+internal fun collectDependencies(project: Project): Map<String, List<String>> {
+    return project.configurations
         .filter { it.isCanBeResolved }
-        .forEach { configuration ->
+        .associate { configuration ->
+            val entries = linkedSetOf<String>()
             val artifacts = configuration.incoming.artifactView { view ->
                 view.isLenient = true
             }.artifacts
@@ -67,10 +66,9 @@ internal fun collectDependencies(project: Project): List<String> {
                 val artifactName = artifact.file.name
                 entries.add("$coordinate - $artifactName")
             }
-        }
 
-    return entries
-        .sorted()
+            configuration.name to entries.sorted()
+        }
 }
 
 private fun coordinateFor(identifier: ComponentIdentifier): String = when (identifier) {
@@ -84,7 +82,7 @@ internal fun buildReport(
     group: String,
     description: String?,
     renderDependencies: Boolean,
-    dependencyLines: List<String>
+    dependenciesByConfiguration: Map<String, List<String>>
 ): String {
     val builder = StringBuilder()
     builder.append("# ").append(name).append("\n\n")
@@ -93,10 +91,17 @@ internal fun buildReport(
     builder.append("- Group: ").append(group).append("\n")
     builder.append("- Description: ").append(description?.takeIf { it.isNotBlank() } ?: "None").append("\n")
 
-    if (renderDependencies && dependencyLines.isNotEmpty()) {
+    if (renderDependencies && dependenciesByConfiguration.isNotEmpty()) {
         builder.append("\n## Dependencies\n")
-        dependencyLines.forEach { line ->
-            builder.append("- ").append(line).append("\n")
+        dependenciesByConfiguration
+            .toSortedMap()
+            .forEach { (configuration, lines) ->
+                if (lines.isEmpty()) return@forEach
+                builder.append("### ").append(configuration).append("\n")
+                lines.forEach { line ->
+                    builder.append("- ").append(line).append("\n")
+                }
+                builder.append("\n")
         }
     }
 

@@ -70,6 +70,7 @@ class ProjectReportPluginFunctionalTest {
         )
 
         assertTrue(result.report.contains("## Dependencies"))
+        assertTrue(result.report.contains("### resolvable"))
         assertTrue(result.report.contains("- org.apache.commons:commons-lang3:3.12.0 - commons-lang3-3.12.0.jar"))
     }
 
@@ -108,10 +109,12 @@ class ProjectReportPluginFunctionalTest {
             """.trimIndent(),
         )
 
-        val rootIndex = result.report.indexOf("org.apache.commons:commons-text:1.10.0 - commons-text-1.10.0.jar")
-        val leafIndex = result.report.indexOf("org.apache.commons:commons-lang3:3.12.0 - commons-lang3-3.12.0.jar")
-        assertTrue(rootIndex > 0 && leafIndex > 0)
-        assertTrue(leafIndex < rootIndex, "Transitive dependency should appear before root due to sorting")
+        val sectionIndex = result.report.indexOf("### runtimeCopy")
+        val textIndex = result.report.indexOf("org.apache.commons:commons-text:1.10.0 - commons-text-1.10.0.jar")
+        val langIndex = result.report.indexOf("org.apache.commons:commons-lang3:3.12.0 - commons-lang3-3.12.0.jar")
+        assertTrue(sectionIndex > 0)
+        assertTrue(textIndex > sectionIndex && langIndex > sectionIndex)
+        assertTrue(langIndex < textIndex, "Transitive dependency should appear before root due to sorting within the configuration")
     }
 
     @ParameterizedTest
@@ -157,6 +160,7 @@ class ProjectReportPluginFunctionalTest {
             projectDirOverride = projectDir,
         )
 
+        assertTrue(result.report.contains("### projectDeps"))
         assertTrue(result.report.contains("- :lib - lib.jar"))
     }
 
