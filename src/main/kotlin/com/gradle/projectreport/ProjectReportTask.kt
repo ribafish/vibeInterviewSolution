@@ -30,6 +30,9 @@ abstract class ProjectReportTask : DefaultTask() {
     @get:Nested
     abstract val configurations: ListProperty<ConfigurationData>
 
+    @get:Nested
+    abstract val subprojects: ListProperty<ProjectData>
+
     @get:OutputFile
     abstract val outputFile: RegularFileProperty
 
@@ -38,38 +41,66 @@ abstract class ProjectReportTask : DefaultTask() {
         val output = outputFile.asFile.get()
         output.parentFile.mkdirs()
 
-        val content = buildString {
-            appendLine("# ${projectName.get()}")
-            appendLine()
-            appendLine("## Project Information")
-            appendLine()
-            appendLine("- **Name**: ${projectName.get()}")
-            if (projectGroup.isPresent && projectGroup.get().isNotBlank()) {
-                appendLine("- **Group**: ${projectGroup.get()}")
-            }
-            if (projectDescription.isPresent && projectDescription.get().isNotBlank()) {
-                appendLine("- **Description**: ${projectDescription.get()}")
-            }
-            appendLine()
+        val subprojectsList = subprojects.get()
+        val hasSubprojects = subprojectsList.isNotEmpty()
 
-            if (renderDependencies.get() && configurations.get().isNotEmpty()) {
-                appendLine("## Dependencies")
+        val content = buildString {
+            if (hasSubprojects) {
+                // Multi-project report
+                appendLine("# ${projectName.get()}")
+                appendLine()
+                appendLine("Multi-project build report for **${projectName.get()}** containing ${subprojectsList.size} subproject(s).")
                 appendLine()
 
-                configurations.get().forEach { configData ->
-                    if (configData.dependencies.isNotEmpty()) {
-                        appendLine("### ${configData.name}")
-                        appendLine()
-                        configData.dependencies.sorted().forEach { dep ->
-                            appendLine("- $dep")
-                        }
-                        appendLine()
-                    }
+                subprojectsList.forEach { projectData ->
+                    renderProject(projectData)
+                    appendLine("---")
+                    appendLine()
                 }
+            } else {
+                // Single project report
+                val projectData = ProjectData(
+                    name = projectName.get(),
+                    group = if (projectGroup.isPresent) projectGroup.get() else "",
+                    description = if (projectDescription.isPresent) projectDescription.get() else "",
+                    configurations = configurations.get()
+                )
+                renderProject(projectData)
             }
         }
 
         output.writeText(content)
+    }
+
+    private fun StringBuilder.renderProject(projectData: ProjectData) {
+        appendLine("## ${projectData.name}")
+        appendLine()
+        appendLine("### Project Information")
+        appendLine()
+        appendLine("- **Name**: ${projectData.name}")
+        if (projectData.group.isNotBlank()) {
+            appendLine("- **Group**: ${projectData.group}")
+        }
+        if (projectData.description.isNotBlank()) {
+            appendLine("- **Description**: ${projectData.description}")
+        }
+        appendLine()
+
+        if (renderDependencies.get() && projectData.configurations.isNotEmpty()) {
+            appendLine("### Dependencies")
+            appendLine()
+
+            projectData.configurations.forEach { configData ->
+                if (configData.dependencies.isNotEmpty()) {
+                    appendLine("#### ${configData.name}")
+                    appendLine()
+                    configData.dependencies.sorted().forEach { dep ->
+                        appendLine("- $dep")
+                    }
+                    appendLine()
+                }
+            }
+        }
     }
 }
 
@@ -79,4 +110,18 @@ data class ConfigurationData(
 
     @get:Input
     val dependencies: List<String>
+) : java.io.Serializable
+
+data class ProjectData(
+    @get:Input
+    val name: String,
+
+    @get:Input
+    val group: String,
+
+    @get:Input
+    val description: String,
+
+    @get:Nested
+    val configurations: List<ConfigurationData>
 ) : java.io.Serializable

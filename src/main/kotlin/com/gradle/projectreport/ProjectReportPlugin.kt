@@ -28,14 +28,38 @@ class ProjectReportPlugin : Plugin<Project> {
             renderDependencies.set(extension.renderDependencies)
             outputFile.set(extension.output)
 
-            // Resolve configurations at configuration time
-            configurations.set(project.provider {
-                if (extension.renderDependencies.get()) {
-                    collectDependencies(project)
-                } else {
-                    emptyList()
-                }
-            })
+            // Check if this is a multi-project build
+            val subprojectsList = project.subprojects.toList()
+
+            if (subprojectsList.isNotEmpty()) {
+                // Multi-project: collect data from all subprojects
+                subprojects.set(project.provider {
+                    subprojectsList.map { subproject ->
+                        ProjectData(
+                            name = subproject.name,
+                            group = subproject.group.toString(),
+                            description = subproject.description ?: "",
+                            configurations = if (extension.renderDependencies.get()) {
+                                collectDependencies(subproject)
+                            } else {
+                                emptyList()
+                            }
+                        )
+                    }
+                })
+                // Empty configurations for root project when rendering subprojects
+                configurations.set(emptyList())
+            } else {
+                // Single project: collect dependencies for this project only
+                configurations.set(project.provider {
+                    if (extension.renderDependencies.get()) {
+                        collectDependencies(project)
+                    } else {
+                        emptyList()
+                    }
+                })
+                subprojects.set(emptyList())
+            }
         }
     }
 

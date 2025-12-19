@@ -11,11 +11,14 @@ See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for the detailed implementa
 This plugin provides:
 - Markdown report generation with project metadata (name, group, description)
 - Comprehensive dependency listing for all configurations
+- **Multi-project support**: Consolidated reports for all subprojects when applied to root project
 - Configurable output via extension DSL
 - Full support for Gradle build cache and configuration cache
 - Tested against Gradle 7.x, 8.x, and 9.x
 
 ## Usage
+
+### Single Project
 
 Apply the plugin in your `build.gradle.kts`:
 
@@ -34,6 +37,29 @@ Run the task:
 ```bash
 ./gradlew projectReport
 ```
+
+### Multi-Project Build
+
+Apply the plugin to the **root** `build.gradle.kts` to generate a consolidated report:
+
+```kotlin
+plugins {
+    id("com.gradle.project-report")
+}
+
+projectReport {
+    renderDependencies.set(true)
+    output.set(layout.buildDirectory.file("reports/multi-project-report.md"))
+}
+```
+
+This automatically includes all subprojects in a single consolidated report, showing:
+- All subprojects with their metadata
+- Complete dependency information for each subproject
+- Project-to-project dependencies
+- All transitive dependencies
+
+See the [example/](example/) directory for a complete working multi-project demonstration.
 
 ## Technology Stack
 

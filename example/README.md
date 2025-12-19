@@ -33,16 +33,19 @@ example-application/
 
 ## Running the Example
 
-### Generate Reports for All Subprojects
+### Generate Consolidated Multi-Project Report
 
 ```bash
 ./gradlew projectReport
 ```
 
-This generates three reports:
-- `lib-utils/build/reports/project-report.md`
-- `lib-core/build/reports/lib-core-report.md`
-- `app/build/reports/app-dependencies-report.md`
+This generates **four** reports:
+1. **Consolidated report** at `build/reports/multi-project-report.md` - Contains all 3 subprojects in one report
+2. Individual report at `lib-utils/build/reports/project-report.md`
+3. Individual report at `lib-core/build/reports/lib-core-report.md`
+4. Individual report at `app/build/reports/app-dependencies-report.md`
+
+The consolidated report shows all subprojects together with their dependencies, making it easy to understand the complete project structure at a glance.
 
 ### Generate Report for Specific Subproject
 
@@ -65,6 +68,23 @@ This generates three reports:
 ```
 
 ## Plugin Configuration Examples
+
+### Multi-Project Report (Root Project)
+
+Apply the plugin to the root `build.gradle.kts` to generate a consolidated report:
+
+```kotlin
+plugins {
+    id("com.gradle.project-report")
+}
+
+projectReport {
+    renderDependencies.set(true)
+    output.set(layout.buildDirectory.file("reports/multi-project-report.md"))
+}
+```
+
+This automatically detects all subprojects and includes them in a single consolidated report.
 
 ### Default Configuration (lib-utils)
 
@@ -103,7 +123,19 @@ projectReport {
 
 ## What to Look For in Generated Reports
 
-Each report will contain:
+### Multi-Project Report
+
+The consolidated report (`build/reports/multi-project-report.md`) contains:
+1. **Title**: The root project name with subproject count
+2. **Project Sections**: One section per subproject with:
+   - Project metadata (name, group, description)
+   - All dependencies organized by configuration
+3. **Separators**: Each subproject section is separated by a horizontal rule
+4. **Complete View**: All subprojects and their dependencies in one file
+
+### Individual Subproject Reports
+
+Each individual report will contain:
 
 1. **Title**: The subproject name (e.g., "# app", "# lib-core")
 2. **Project Information**: Group, name, and description
