@@ -85,9 +85,21 @@ The AI was instructed to follow modern Gradle best practices, including Kotlin D
 
 ## Creating project.zip
 
-To create a `project.zip` file that includes all the code, build, and workflow files, but excludes any build output, navigate to the root of the project and execute the following command:
+To create a `project.zip` file for submission, which includes all necessary source code and project files but excludes build artifacts and local development files, run the following command from the root directory of the project:
 
 ```bash
-zip -r project.zip . -x "*build*" -x "*.gradle*" -x "*.git*" -x "*.DS_Store*" -x "*settings.gradle.kts*" -x "*PLAN.md*" -x "*README.md*"
+zip -r project.zip . -x "*/build/*" -x "*/.gradle/*" -x ".git/*" -x "*.DS_Store"
 ```
-This command will create a `project.zip` file in the current directory, containing all relevant project files while excluding common build artifacts, Gradle wrapper files, Git metadata, macOS specific files, and the generated `settings.gradle.kts`, `PLAN.md`, and `README.md`.
+
+This command will create a `project.zip` file in the project's root directory. It includes:
+- The complete `buildSrc` directory with the plugin source code and tests.
+- Gradle wrapper scripts (`gradlew`, `gradlew.bat`).
+- The `.github/workflows/build.yaml` file for CI.
+- All `build.gradle.kts` and `settings.gradle.kts` files.
+- `PLAN.md` and `README.md`.
+
+It excludes:
+- All `build` directories.
+- The `.gradle` directory, which contains caches and build-related files.
+- The `.git` directory.
+- System-specific files like `.DS_Store`.

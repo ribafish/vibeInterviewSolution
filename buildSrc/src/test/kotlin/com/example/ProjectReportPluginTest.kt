@@ -30,26 +30,41 @@ class ProjectReportPluginTest {
         )
     }
 
-    @Test
-    fun `plugin applies successfully and registers projectReport task`() {
-        val runner = GradleRunner.create()
+    private fun createRunner(vararg arguments: String): GradleRunner {
+        return GradleRunner.create()
             .withProjectDir(testProjectDir)
             .withPluginClasspath()
-            .withArguments("tasks", "--all", "--dry-run")
-            .build()
+            .withArguments(*arguments)
+            .withDebug(true)
+            .forwardOutput()
+    }
 
-        assertTrue(runner.output.contains("projectReport"), "Expected projectReport task to be registered")
+    @Test
+    fun `plugin applies successfully and registers projectReport task`() {
+        val result = try {
+            createRunner("tasks", "--all", "--dry-run").build()
+        } catch (e: Exception) {
+            if (e is org.gradle.testkit.runner.UnexpectedBuildFailure) {
+                println("TestKit build output:\n${e.buildResult.output}")
+            }
+            throw e
+        }
+
+        assertTrue(result.output.contains("projectReport"), "Expected projectReport task to be registered")
     }
 
     @Test
     fun `projectReport task runs successfully and creates report file`() {
-        val runner = GradleRunner.create()
-            .withProjectDir(testProjectDir)
-            .withPluginClasspath()
-            .withArguments("projectReport")
-            .build()
+        val result = try {
+            createRunner("projectReport").build()
+        } catch (e: Exception) {
+            if (e is org.gradle.testkit.runner.UnexpectedBuildFailure) {
+                println("TestKit build output:\n${e.buildResult.output}")
+            }
+            throw e
+        }
 
-        assertTrue(runner.output.contains("Project report generated at:"), "Expected report generation message")
+        assertTrue(result.output.contains("Project report generated at:"), "Expected report generation message")
         val reportFile = File(testProjectDir, "build/reports/project-report.md")
         assertTrue(reportFile.exists(), "Expected report file to exist")
         assertTrue(reportFile.readText().contains("# Project: testProject"), "Expected report to contain project name")
@@ -83,11 +98,14 @@ class ProjectReportPluginTest {
             """.trimIndent()
         )
 
-        val runner = GradleRunner.create()
-            .withProjectDir(testProjectDir)
-            .withPluginClasspath()
-            .withArguments("projectReport")
-            .build()
+        val result = try {
+            createRunner("projectReport").build()
+        } catch (e: Exception) {
+            if (e is org.gradle.testkit.runner.UnexpectedBuildFailure) {
+                println("TestKit build output:\n${e.buildResult.output}")
+            }
+            throw e
+        }
 
         val reportFile = File(testProjectDir, "build/reports/project-report.md")
         val reportContent = reportFile.readText()
@@ -115,14 +133,62 @@ class ProjectReportPluginTest {
             """.trimIndent()
         )
 
-        val runner = GradleRunner.create()
-            .withProjectDir(testProjectDir)
-            .withPluginClasspath()
-            .withArguments("projectReport")
-            .build()
+        val result = try {
+            createRunner("projectReport").build()
+        } catch (e: Exception) {
+            if (e is org.gradle.testkit.runner.UnexpectedBuildFailure) {
+                println("TestKit build output:\n${e.buildResult.output}")
+            }
+            throw e
+        }
 
         val reportFile = File(testProjectDir, customOutputPath)
         assertTrue(reportFile.exists(), "Expected report file to exist at custom path")
         assertTrue(reportFile.readText().contains("# Project: testProject"), "Expected report to contain project name")
+    }
+
+    @Test
+    fun `projectReport task renders dependencies correctly`() {
+        buildFile.writeText(
+            """
+            plugins {
+                id("com.example.project-report")
+                id("java-library")
+            }
+
+            version = "1.0.0"
+            group = "com.mycompany"
+            description = "My test project"
+
+            projectReport {
+                renderDependencies = true
+            }
+
+            repositories {
+                mavenCentral()
+            }
+
+            dependencies {
+                implementation("org.apache.commons:commons-lang3:3.12.0")
+            }
+            """.trimIndent()
+        )
+
+        val result = try {
+            createRunner("projectReport", "--stacktrace").build()
+        } catch (e: Exception) {
+            if (e is org.gradle.testkit.runner.UnexpectedBuildFailure) {
+                println("TestKit build output:\n${e.buildResult.output}")
+            }
+            throw e
+        }
+
+        val reportFile = File(testProjectDir, "build/reports/project-report.md")
+        assertTrue(reportFile.exists(), "Expected report file to exist")
+        val reportContent = reportFile.readText()
+
+        assertTrue(reportContent.contains("## Configurations and Dependencies"), "Expected dependencies section to be rendered")
+        assertTrue(reportContent.contains("### Configuration: implementation"), "Expected implementation configuration to be listed")
+        assertTrue(reportContent.contains("org.apache.commons:commons-lang3:3.12.0 - commons-lang3-3.12.0.jar"), "Expected commons-lang3 dependency to be in report with correct format")
     }
 }
