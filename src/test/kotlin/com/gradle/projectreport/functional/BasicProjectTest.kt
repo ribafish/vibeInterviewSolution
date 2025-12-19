@@ -130,8 +130,6 @@ class BasicProjectTest {
             """
         )
 
-        val buildCacheDir = File(projectDir, ".gradle-cache")
-
         // First run with cache enabled
         val firstResult = GradleRunner.create()
             .withProjectDir(projectDir)
