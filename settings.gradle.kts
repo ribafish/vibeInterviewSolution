@@ -10,11 +10,11 @@ plugins {
 }
 
 develocity {
-    server = "https://scans.gradle.com"
+    server.set("https://scans.gradle.com")
     buildScan {
         termsOfUseUrl = "https://gradle.com/terms-of-service"
         termsOfUseAgree = "yes"
-        uploadInBackground = false
+        isUploadInBackground = false
     }
 }
 
