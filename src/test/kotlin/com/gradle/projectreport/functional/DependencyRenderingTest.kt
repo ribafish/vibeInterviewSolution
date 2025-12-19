@@ -201,7 +201,7 @@ class DependencyRenderingTest {
         val reportFile = File(projectDir, "build/reports/project-report.md")
         val content = reportFile.readText()
 
-        assertTrue(content.contains("# Project Report"))
+        assertTrue(content.contains("# test-project"))
         assertFalse(content.contains("## Dependencies"), "Should not have dependencies section")
     }
 

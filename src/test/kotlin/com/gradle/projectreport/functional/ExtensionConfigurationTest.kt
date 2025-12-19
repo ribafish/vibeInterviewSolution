@@ -46,7 +46,7 @@ class ExtensionConfigurationTest {
         val reportFile = File(projectDir, "build/reports/project-report.md")
         val content = reportFile.readText()
 
-        assertTrue(content.contains("# Project Report"))
+        assertTrue(content.contains("# test-project"))
         assertFalse(content.contains("## Dependencies"), "Should not render dependencies when disabled")
         assertFalse(content.contains("commons-lang3"), "Should not contain any dependency information")
     }

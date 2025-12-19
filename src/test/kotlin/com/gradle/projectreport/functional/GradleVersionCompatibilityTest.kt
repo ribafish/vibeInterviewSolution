@@ -51,7 +51,7 @@ class GradleVersionCompatibilityTest {
         assertTrue(reportFile.exists(), "Report should be created with Gradle $gradleVersion")
 
         val content = reportFile.readText()
-        assertTrue(content.contains("# Project Report"))
+        assertTrue(content.contains("# test-project"))
         assertTrue(content.contains("**Name**: test-project"))
         assertTrue(content.contains("**Group**: com.example"))
         assertTrue(content.contains("**Description**: Test project for Gradle $gradleVersion"))

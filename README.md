@@ -1,4 +1,4 @@
-# Gradle Project Report Plugin (Claude Implementation)
+# Gradle Project Report Plugin
 
 A Gradle plugin that generates Markdown reports containing project metadata and dependency information. This implementation demonstrates compatibility with Gradle's performance features including build caching, configuration caching, and lazy configuration.
 
@@ -57,8 +57,50 @@ Run the task:
 ### Publish build scan
 Build scans are automatically published to scans.gradle.com for every build.
 
----
+## Design Decisions and Alternatives
 
-This is part of a multi-solution project comparing different AI implementations. See other branches (codex, gemini) for alternative solutions.
+### Language Selection: Kotlin
+Kotlin was chosen for plugin implementation over Groovy and Java due to:
+- Superior type safety and null safety features
+- Excellent IDE support and autocompletion
+- First-class Gradle API support with property delegates
+- More concise and readable code for plugin development
+
+### Dependency Resolution Approach
+The plugin uses `Configuration.incoming.resolutionResult` API to process the dependency graph, which:
+- Provides access to the complete resolved dependency tree including transitives
+- Allows matching artifacts to their component identifiers
+- Handles configuration resolution errors gracefully
+- Works efficiently with Gradle's lazy configuration model
+
+### Caching Strategy
+Build caching is implemented using:
+- `@CacheableTask` annotation on the task class
+- Proper input annotations (`@Input`, `@Nested`) for all task inputs
+- `@OutputFile` annotation for the report file
+- Deterministic output generation (sorted dependencies)
+
+Configuration caching compatibility achieved by:
+- Avoiding direct `Project` access in task actions
+- Using `Property<T>` types for all configuration
+- Resolving dependencies at configuration time, not execution time
+- Storing only serializable data in task inputs
+
+### Testing Strategy
+Multi-layered testing approach:
+- Unit tests: Direct task testing with ProjectBuilder
+- Functional tests: Full integration tests with TestKit
+- Multi-version compatibility tests: Parameterized tests across Gradle 7.x, 8.x, 9.x
+- Cache verification tests: Ensuring FROM_CACHE and UP_TO_DATE outcomes work correctly
+
+### Alternatives Considered
+**Alternative 1: Runtime Dependency Resolution**
+Rejected because it would break configuration caching support. Gradle requires all configuration to be captured at configuration time for proper caching.
+
+**Alternative 2: Project Dependencies Only**
+Rejected as the specification requires both project and external dependencies. The implementation handles both by traversing the complete resolution result.
+
+**Alternative 3: Single Configuration Report**
+Rejected in favor of reporting all resolvable configurations, providing more comprehensive dependency visibility.
 
 

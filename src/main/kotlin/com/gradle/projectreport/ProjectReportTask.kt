@@ -39,7 +39,7 @@ abstract class ProjectReportTask : DefaultTask() {
         output.parentFile.mkdirs()
 
         val content = buildString {
-            appendLine("# Project Report")
+            appendLine("# ${projectName.get()}")
             appendLine()
             appendLine("## Project Information")
             appendLine()

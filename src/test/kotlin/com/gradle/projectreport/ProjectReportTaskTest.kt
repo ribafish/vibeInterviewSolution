@@ -30,7 +30,7 @@ class ProjectReportTaskTest {
         assertTrue(outputFile.exists(), "Report file should be created")
         val content = outputFile.readText()
 
-        assertTrue(content.contains("# Project Report"), "Should contain title")
+        assertTrue(content.contains("# test-project"), "Should contain title")
         assertTrue(content.contains("## Project Information"), "Should contain project info section")
         assertTrue(content.contains("**Name**: test-project"), "Should contain project name")
         assertTrue(content.contains("**Group**: com.example"), "Should contain project group")
