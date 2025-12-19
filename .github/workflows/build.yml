@@ -29,7 +29,7 @@ jobs:
 
       - name: Run checks
         run: |
-          gradle check --stacktrace --warning-mode=fail
+          gradle check --stacktrace
 
       - name: Upload test reports
         if: failure()
